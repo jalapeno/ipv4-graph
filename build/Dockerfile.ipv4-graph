@@ -1,0 +1,5 @@
+FROM scratch
+
+COPY ./bin/ipv4-graph /ipv4-graph
+ENTRYPOINT ["/ipv4-graph"]
+
