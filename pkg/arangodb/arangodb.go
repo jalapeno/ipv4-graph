@@ -205,6 +205,30 @@ func (a *arangoDB) loadEdge() error {
 		}
 	}
 
+	// ASBRs between IGP domains
+	asbr_query := "for l in peer let internal_asns = ( for n in ls_node return n.peer_asn ) " +
+		"filter l.remote_asn in internal_asns && l.local_asn in internal_asns " +
+		"filter l._key !like " + "\"%:%\"" + " filter l.remote_asn != l.local_asn return l"
+	cursor, err = a.db.Query(ctx, asbr_query, nil)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close()
+	for {
+		var p message.PeerStateChange
+		meta, err := cursor.ReadDocument(ctx, &p)
+		if driver.IsNoMoreDocuments(err) {
+			break
+		} else if err != nil {
+			return err
+		}
+		//glog.Infof("processing eBGP peers for ls_node: %s", p.Key)
+		if err := a.processASBR(ctx, meta.Key, &p); err != nil {
+			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
+			continue
+		}
+	}
+
 	// egress / Inet peer
 	bgp_query := "for l in peer let internal_asns = ( for n in ls_node return n.peer_asn ) " +
 		"filter l.remote_asn not in internal_asns return l"

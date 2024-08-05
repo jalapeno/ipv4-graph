@@ -8,6 +8,7 @@ import (
 	"github.com/sbezverk/gobmp/pkg/message"
 )
 
+// eBGP private
 func (a *arangoDB) processPeerSession(ctx context.Context, key string, p *message.PeerStateChange) error {
 	glog.Infof("process private ASN bgp session: %s", p.Key)
 	// get local node from ls_link entry
