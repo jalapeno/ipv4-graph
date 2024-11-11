@@ -160,7 +160,7 @@ func (a *arangoDB) getExtPeer(ctx context.Context, e *message.PeerStateChange, l
 		query += " filter d.router_id == " + "\"" + e.LocalBGPID + "\""
 	} else {
 		glog.Infof("get remote node per session: %s, %v", e.RemoteBGPID, e.ID)
-		query += " filter d.router_id == " + "\"" + e.RemoteBGPID + "\""
+		query += " filter d.bgp_router_id == " + "\"" + e.RemoteBGPID + "\""
 	}
 	query += " return d"
 	//glog.Infof("query: %+v", query)

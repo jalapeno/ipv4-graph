@@ -231,7 +231,7 @@ func (a *arangoDB) loadEdge() error {
 
 	// egress / Inet peer
 	bgp_query := "for l in peer let internal_asns = ( for n in ls_node return n.peer_asn ) " +
-		"filter l.remote_asn not in internal_asns return l"
+		"filter l.remote_asn not in internal_asns filter l._key !like " + "\"%:%\"" + " return l"
 	cursor, err = a.db.Query(ctx, bgp_query, nil)
 	if err != nil {
 		return err
