@@ -8,7 +8,7 @@ import (
 	"github.com/sbezverk/gobmp/pkg/message"
 )
 
-// eBGP private
+// eBGP private ASN peer session
 func (a *arangoDB) processPeerSession(ctx context.Context, key string, p *message.PeerStateChange) error {
 	glog.Infof("process private ASN bgp session: %s", p.Key)
 	// get local node from ls_link entry
@@ -27,7 +27,7 @@ func (a *arangoDB) processPeerSession(ctx context.Context, key string, p *messag
 		glog.Errorf("processEdge failed to create Edge object with error: %+v", err)
 		return err
 	}
-	//glog.V(9).Infof("processEdge completed processing lslink: %s for ls nodes: %s - %s", l.ID, ln.ID, rn.ID)
+	//glog.V(9).Infof("processEdge completed processing peer session: %s for nodes: %s - %s", p.Key, ln.ID, rn.ID)
 	return nil
 }
 

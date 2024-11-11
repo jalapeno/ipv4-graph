@@ -82,7 +82,7 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, lslink string, lsprefix strin
 		return nil, err
 	}
 
-	// Check if original ls_topology collection exists, if not fail as Jalapeno topology is not running
+	// Check if original lsv4 collection exists, if not fail as Jalapeno topology is not running
 	arango.lsv4Graph, err = arango.db.Graph(context.TODO(), lsv4Graph)
 	glog.Infof("lsv4 topo collection found %+v", lsv4Graph)
 	if err != nil {
@@ -102,7 +102,7 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, lslink string, lsprefix strin
 		glog.Infof("found graph %s", c)
 
 	} else {
-		// create graph
+		// create ipv4_graph
 		var edgeDefinition driver.EdgeDefinition
 		edgeDefinition.Collection = "ipv4_graph"
 		edgeDefinition.From = []string{"ls_node_extended", "ls_prefix", "ebgp_peer", "inet_prefix_v4"}
