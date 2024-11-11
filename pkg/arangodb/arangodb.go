@@ -178,6 +178,7 @@ func (a *arangoDB) StoreMessage(msgType dbclient.CollectionType, msg []byte) err
 func (a *arangoDB) loadEdge() error {
 	ctx := context.TODO()
 	glog.Infof("start processing vertices and edges")
+	// create base topology by copying lsv4_graph to ipv4_graph
 	copy_ls_topo := "for l in lsv4_graph insert l in ipv4_graph options { overwrite: " + "\"update\"" + " } "
 	cursor, err := a.db.Query(ctx, copy_ls_topo, nil)
 	if err != nil {
@@ -185,6 +186,7 @@ func (a *arangoDB) loadEdge() error {
 	}
 	defer cursor.Close()
 
+	// get ipv4 ls_prefix entries
 	lsprefix_query := "for l in ls_prefix filter l.mt_id_tlv.mt_id != 2 filter l.prefix_len < 26 return l"
 	cursor, err = a.db.Query(ctx, lsprefix_query, nil)
 	if err != nil {
@@ -205,7 +207,7 @@ func (a *arangoDB) loadEdge() error {
 		}
 	}
 
-	// ASBRs between IGP domains
+	// Find ASBRs between IGP domains
 	asbr_query := "for l in peer let internal_asns = ( for n in ls_node return n.peer_asn ) " +
 		"filter l.remote_asn in internal_asns && l.local_asn in internal_asns " +
 		"filter l._key !like " + "\"%:%\"" + " filter l.remote_asn != l.local_asn return l"
@@ -222,36 +224,14 @@ func (a *arangoDB) loadEdge() error {
 		} else if err != nil {
 			return err
 		}
-		//glog.Infof("processing eBGP peers for ls_node: %s", p.Key)
+		//glog.Infof("processing ASBRs between IGP domains: %s", p.Key)
 		if err := a.processASBR(ctx, meta.Key, &p); err != nil {
 			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
 			continue
 		}
 	}
 
-	// egress / Inet peer
-	bgp_query := "for l in peer let internal_asns = ( for n in ls_node return n.peer_asn ) " +
-		"filter l.remote_asn not in internal_asns filter l._key !like " + "\"%:%\"" + " return l"
-	cursor, err = a.db.Query(ctx, bgp_query, nil)
-	if err != nil {
-		return err
-	}
-	defer cursor.Close()
-	for {
-		var p message.PeerStateChange
-		meta, err := cursor.ReadDocument(ctx, &p)
-		if driver.IsNoMoreDocuments(err) {
-			break
-		} else if err != nil {
-			return err
-		}
-		//glog.Infof("processing eBGP peers for ls_node: %s", p.Key)
-		if err := a.processEgressPeer(ctx, meta.Key, &p); err != nil {
-			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
-			continue
-		}
-	}
-
+	// Find epe_link entries
 	epe_query := "for l in ls_link filter l.protocol_id == 7 filter l._key !like " + "\"%:%\"" + " return l"
 	cursor, err = a.db.Query(ctx, epe_query, nil)
 	if err != nil {
@@ -273,6 +253,7 @@ func (a *arangoDB) loadEdge() error {
 		}
 	}
 
+	// Find iBGP nodes to associate with iBGP prefixes
 	ibgp_prefix_query := "for l in " + a.lsnodeExt.Name() + " return l"
 	cursor, err = a.db.Query(ctx, ibgp_prefix_query, nil)
 	if err != nil {
@@ -287,15 +268,14 @@ func (a *arangoDB) loadEdge() error {
 		} else if err != nil {
 			return err
 		}
-		glog.Infof("get ipv4 iBGP prefixes attach to lsnode: %s", p.Key)
+		//glog.Infof("get ipv4 iBGP prefixes attach to lsnode: %s", p.Key)
 		if err := a.processIBGPPrefix(ctx, meta.Key, &p); err != nil {
 			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
 			continue
 		}
 	}
 
-	// ebgp DC peers
-	//peer2peer_query := "for l in peer return l"
+	// Find private ASN eBGP DC peers
 	peer2peer_query := "for l in peer let internal_asns = ( for n in ls_node return n.peer_asn ) " +
 		"filter l.remote_asn not in internal_asns filter l.remote_asn in 64512..65535 filter l._key !like " + "\"%:%\"" +
 		" return l"
@@ -312,8 +292,32 @@ func (a *arangoDB) loadEdge() error {
 		} else if err != nil {
 			return err
 		}
-		glog.Infof("connect private ASN eBGP peers in graph: %s", p.Key)
+		//glog.Infof("connect private ASN eBGP peers in graph: %s", p.Key)
 		if err := a.processPeerSession(ctx, meta.Key, &p); err != nil {
+			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
+			continue
+		}
+	}
+
+	// this query provides duplicate results with the private ASN eBGP DC peers
+	// Find egress / Inet peers, perhaps also egress from IGP to eBGP DC peers
+	bgp_query := "for l in peer let internal_asns = ( for n in ls_node return n.peer_asn ) " +
+		"filter l.remote_asn not in internal_asns filter l._key !like " + "\"%:%\"" + " return l"
+	cursor, err = a.db.Query(ctx, bgp_query, nil)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close()
+	for {
+		var p message.PeerStateChange
+		meta, err := cursor.ReadDocument(ctx, &p)
+		if driver.IsNoMoreDocuments(err) {
+			break
+		} else if err != nil {
+			return err
+		}
+		glog.Infof("processing eBGP peers for ls_node: %s", p.Key)
+		if err := a.processEgressPeer(ctx, meta.Key, &p); err != nil {
 			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
 			continue
 		}
@@ -339,6 +343,7 @@ func (a *arangoDB) loadEdge() error {
 		}
 	}
 
+	// Find non-Internet eBGP prefixes
 	ebgp_prefix_query := "for l in ebgp_prefix_v4 return l"
 	cursor, err = a.db.Query(ctx, ebgp_prefix_query, nil)
 	if err != nil {

@@ -24,8 +24,7 @@ func (a *arangoDB) processEPE(ctx context.Context, key string, e *message.LSLink
 		" filter d.router_id == " + "\"" + e.BGPRouterID + "\"" +
 		" filter d.domain_id == " + strconv.Itoa(int(e.DomainID))
 	query += " return d"
-	glog.Infof("query lsnode for router id matching lslink igp_id: %+v bgp_router_id: %+v, local_link_ip: %+v", e.IGPRouterID, e.BGPRouterID, e.LocalLinkIP)
-	glog.Infof("query: %+v", query)
+	//glog.Infof("query lsnode for router id matching lslink igp_id: %+v bgp_router_id: %+v, local_link_ip: %+v", e.IGPRouterID, e.BGPRouterID, e.LocalLinkIP)
 	lcursor, err := a.db.Query(ctx, query, nil)
 	if err != nil {
 		return err

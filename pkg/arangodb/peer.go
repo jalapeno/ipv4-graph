@@ -91,10 +91,11 @@ func (a *arangoDB) createPeerEdge(ctx context.Context, l *message.PeerStateChang
 	return nil
 }
 
+// process eBGP egress / Inet peer session - this is for eBGP between IGP and Internet peers or eBGP DC peers
 func (a *arangoDB) processEgressPeer(ctx context.Context, key string, p *message.PeerStateChange) error {
 
-	glog.Infof("process ebgp session: %s", p.Key)
-	// get local node from ls_link entry
+	glog.Infof("process egress ebgp session: %s", p.Key)
+	// get local node from peer entry
 	ln, err := a.getLocalnode(ctx, p, true)
 	if err != nil {
 		glog.Errorf("processEdge failed to get local peer %s for link: %s with error: %+v", p.LocalBGPID, p.ID, err)
@@ -156,11 +157,11 @@ func (a *arangoDB) getExtPeer(ctx context.Context, e *message.PeerStateChange, l
 	// Need to find ls_node object matching ls_link's IGP Router ID
 	query := "FOR d IN " + a.ebgpPeer.Name()
 	if local {
-		glog.Infof("get local node per session: %s, %s", e.LocalBGPID, e.ID)
+		//glog.Infof("get local node per session: %s, %s", e.LocalBGPID, e.ID)
 		query += " filter d.router_id == " + "\"" + e.LocalBGPID + "\""
 	} else {
-		glog.Infof("get remote node per session: %s, %v", e.RemoteBGPID, e.ID)
-		query += " filter d.bgp_router_id == " + "\"" + e.RemoteBGPID + "\""
+		//glog.Infof("get remote node per session: %s, %v", e.RemoteBGPID, e.ID)
+		query += " filter d.router_id == " + "\"" + e.RemoteBGPID + "\""
 	}
 	query += " return d"
 	//glog.Infof("query: %+v", query)

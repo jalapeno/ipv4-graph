@@ -115,7 +115,7 @@ func (a *arangoDB) processeBgpPrefix(ctx context.Context, key string, e *message
 				break
 			}
 
-			glog.Infof("ls node %s + iBGP prefix %s, meta %+v", e.Key, up.Key, mp)
+			glog.Infof("ls node %s + BGP prefix %s, meta %+v", e.Key, up.Key, mp)
 			from := unicastPrefixEdgeObject{
 				Key:       up.Key + "_" + e.Key,
 				From:      up.ID,
