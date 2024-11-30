@@ -316,7 +316,6 @@ func (a *arangoDB) loadEdge() error {
 		}
 	}
 
-	//unicast_prefix_v4_query := "for p in unicast_prefix_v4 filter p.prefix_len < 96 return p"
 	bgp_prefix_query := "for p in ebgp_prefix_v4 return p"
 	cursor, err = a.db.Query(ctx, bgp_prefix_query, nil)
 	if err != nil {
@@ -333,6 +332,27 @@ func (a *arangoDB) loadEdge() error {
 		}
 		//glog.Infof("get ipv eBGP prefixes: %s", p.Key)
 		if err := a.processeBgpPrefix(ctx, meta.Key, &p); err != nil {
+			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
+			continue
+		}
+	}
+
+	inet_prefix_query := "for p in inet_prefix_v4 return p"
+	cursor, err = a.db.Query(ctx, inet_prefix_query, nil)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close()
+	for {
+		var p message.UnicastPrefix
+		meta, err := cursor.ReadDocument(ctx, &p)
+		if driver.IsNoMoreDocuments(err) {
+			break
+		} else if err != nil {
+			return err
+		}
+		//glog.Infof("get ipv inet prefixes: %s", p.Key)
+		if err := a.processInetPrefix(ctx, meta.Key, &p); err != nil {
 			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
 			continue
 		}
