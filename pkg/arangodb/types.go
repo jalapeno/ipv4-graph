@@ -90,7 +90,7 @@ type inetPrefixEdgeObject struct {
 	PeerName   string              `json:"peer_name"`
 }
 
-type bgpPeer struct {
+type bgpNode struct {
 	Key             string         `json:"_key,omitempty"`
 	ID              string         `json:"_id,omitempty"`
 	BGPRouterID     string         `json:"router_id,omitempty"`
@@ -107,7 +107,7 @@ type bgpPrefix struct {
 	RouterID  string `json:"router_id"`
 }
 
-type LSNodeExt struct {
+type igpNode struct {
 	Key                  string                          `json:"_key,omitempty"`
 	ID                   string                          `json:"_id,omitempty"`
 	Rev                  string                          `json:"_rev,omitempty"`
@@ -153,12 +153,4 @@ type SID struct {
 	SRv6EndpointBehavior *srv6.EndpointBehavior `json:"srv6_endpoint_behavior,omitempty"`
 	SRv6BGPPeerNodeSID   *srv6.BGPPeerNodeSID   `json:"srv6_bgp_peer_node_sid,omitempty"`
 	SRv6SIDStructure     *srv6.SIDStructure     `json:"srv6_sid_structure,omitempty"`
-}
-
-type bgpNode struct {
-	Key             string         `json:"_key,omitempty"`
-	ID              string         `json:"_id,omitempty"`
-	BGPRouterID     string         `json:"router_id,omitempty"`
-	ASN             int32          `json:"asn"`
-	AdvCapabilities bgp.Capability `json:"adv_cap,omitempty"`
 }
