@@ -20,7 +20,7 @@ type arangoDB struct {
 	stop            chan struct{}
 	graph           driver.Collection
 	peer            driver.Collection
-	ebgpPeerV4      driver.Collection
+	bgpNode         driver.Collection
 	unicastprefixV4 driver.Collection
 	ebgpprefixV4    driver.Collection
 	inetprefixV4    driver.Collection
@@ -29,7 +29,7 @@ type arangoDB struct {
 }
 
 // NewDBSrvClient returns an instance of a DB server client process
-func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, ebgppeerV4, unicastprefixV4,
+func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, bgpNode, unicastprefixV4,
 	ebgpprefixV4, inetprefixV4, ipv4Graph string,
 	notifier kafkanotifier.Event) (dbclient.Srv, error) {
 	if err := tools.URLAddrValidation(arangoSrv); err != nil {
@@ -53,13 +53,13 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, ebgppeerV4, unicastpref
 		arango.notifier = notifier
 	}
 
-	// check for ebgp_peer collection
-	found, err := arango.db.CollectionExists(context.TODO(), ebgppeerV4)
+	// check for bgp_node collection
+	found, err := arango.db.CollectionExists(context.TODO(), bgpNode)
 	if err != nil {
 		return nil, err
 	}
 	if found {
-		c, err := arango.db.Collection(context.TODO(), ebgppeerV4)
+		c, err := arango.db.Collection(context.TODO(), bgpNode)
 		if err != nil {
 			return nil, err
 		}
@@ -105,17 +105,17 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, ebgppeerV4, unicastpref
 		return nil, err
 	}
 
-	//glog.Infof("create eipv4 peer collection")
-	// create ebgp_peer_v4 collection
-	var ebgppeerV4_options = &driver.CreateCollectionOptions{ /* ... */ }
-	arango.ebgpPeerV4, err = arango.db.CreateCollection(context.TODO(), "ebgp_peer_v4", ebgppeerV4_options)
+	//glog.Infof("create bgp_node collection")
+	// create bgp_node collection
+	var bgpNode_options = &driver.CreateCollectionOptions{ /* ... */ }
+	arango.bgpNode, err = arango.db.CreateCollection(context.TODO(), "bgp_node", bgpNode_options)
 	if err != nil {
 		return nil, err
 	}
-	//glog.Infof("check eipv4 peer collection")
+	//glog.Infof("check bgp_node collection")
 
 	// Check if eBGP Peer collection exists, if not fail as Jalapeno topology is not running
-	arango.ebgpPeerV4, err = arango.db.Collection(context.TODO(), ebgppeerV4)
+	arango.bgpNode, err = arango.db.Collection(context.TODO(), bgpNode)
 	if err != nil {
 		return nil, err
 	}
@@ -167,8 +167,8 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, ebgppeerV4, unicastpref
 		// create graph
 		var edgeDefinition driver.EdgeDefinition
 		edgeDefinition.Collection = "ipv4_graph"
-		edgeDefinition.From = []string{"ebgp_peer_v4", "ebgp_prefix_v4", "inet_prefix_v4"}
-		edgeDefinition.To = []string{"ebgp_peer_v4", "ebgp_prefix_v4", "inet_prefix_v4"}
+		edgeDefinition.From = []string{"bgp_node", "ebgp_prefix_v4", "inet_prefix_v4"}
+		edgeDefinition.To = []string{"bgp_node", "ebgp_prefix_v4", "inet_prefix_v4"}
 		var options driver.CreateGraphOptions
 		options.EdgeDefinitions = []driver.EdgeDefinition{edgeDefinition}
 
@@ -251,7 +251,7 @@ func (a *arangoDB) loadEdge() error {
 	glog.Infof("start processing vertices and edges")
 
 	glog.Infof("insert link-state graph topology into ipv4 graph")
-	copy_ls_topo := "for l in lsv4_graph insert l in ipv4_graph options { overwrite: " + "\"update\"" + " } "
+	copy_ls_topo := "for l in igpv4_graph insert l in ipv4_graph options { overwrite: " + "\"update\"" + " } "
 	cursor, err := a.db.Query(ctx, copy_ls_topo, nil)
 	if err != nil {
 		glog.Errorf("Failed to copy link-state topology; it may not exist or have been populated in the database: %v", err)
@@ -283,12 +283,12 @@ func (a *arangoDB) loadEdge() error {
 	}
 	defer cursor.Close()
 
-	glog.Infof("copying unique ebgp peers into ebgp_peer_v4 collection")
-	ebgp_peer_query := "for p in peer let igp_asns = ( for n in ls_node_extended return n.peer_asn ) " +
+	glog.Infof("copying unique bgp_node into bgp_node collection")
+	bgp_node_query := "for p in peer let igp_asns = ( for n in igp_node return n.peer_asn ) " +
 		"filter p.remote_asn not in igp_asns " +
 		"insert { _key: CONCAT_SEPARATOR(" + "\"_\", p.remote_bgp_id, p.remote_asn), " +
-		"router_id: p.remote_bgp_id, asn: p.remote_asn  } INTO ebgp_peer_v4 OPTIONS { ignoreErrors: true }"
-	cursor, err = a.db.Query(ctx, ebgp_peer_query, nil)
+		"router_id: p.remote_bgp_id, asn: p.remote_asn  } INTO bgp_node OPTIONS { ignoreErrors: true }"
+	cursor, err = a.db.Query(ctx, bgp_node_query, nil)
 	if err != nil {
 		return err
 	}
@@ -359,7 +359,7 @@ func (a *arangoDB) loadEdge() error {
 	}
 
 	// Find eBGP egress / Inet peers from IGP domain. This could also be egress from IGP domain to internal eBGP peers
-	bgp_query := "for l in peer let internal_asns = ( for n in ls_node_extended return n.peer_asn ) " +
+	bgp_query := "for l in peer let internal_asns = ( for n in igp_node return n.peer_asn ) " +
 		"filter l.local_asn in internal_asns && l.remote_asn not in internal_asns filter l._key like " + "\"%:%\"" + " return l"
 	cursor, err = a.db.Query(ctx, bgp_query, nil)
 	if err != nil {

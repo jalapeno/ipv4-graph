@@ -28,13 +28,14 @@ const (
 )
 
 var (
-	msgSrvAddr      string
-	dbSrvAddr       string
-	dbName          string
-	dbUser          string
-	dbPass          string
-	peer            string
-	ebgpPeerV4      string
+	msgSrvAddr string
+	dbSrvAddr  string
+	dbName     string
+	dbUser     string
+	dbPass     string
+	peer       string
+	bgpNode    string
+	//ebgpPeerV4      string
 	unicastprefixV4 string
 	ebgpprefixV4    string
 	inetprefixV4    string
@@ -43,8 +44,8 @@ var (
 
 func init() {
 	runtime.GOMAXPROCS(1)
-	// flag.StringVar(&msgSrvAddr, "message-server", "198.18.133.103:30092", "URL to the messages supplying server")
-	// flag.StringVar(&dbSrvAddr, "database-server", "http://198.18.133.103:30852", "{dns name}:port or X.X.X.X:port of the graph database")
+	// flag.StringVar(&msgSrvAddr, "message-server", "198.18.133.112:30092", "URL to the messages supplying server")
+	// flag.StringVar(&dbSrvAddr, "database-server", "http://198.18.133.112:30852", "{dns name}:port or X.X.X.X:port of the graph database")
 	// flag.StringVar(&dbName, "database-name", "jalapeno", "DB name")
 	// flag.StringVar(&dbUser, "database-user", "root", "DB User name")
 	// flag.StringVar(&dbPass, "database-pass", "jalapeno", "DB User's password")
@@ -56,7 +57,7 @@ func init() {
 	flag.StringVar(&dbPass, "database-pass", "", "DB User's password")
 
 	flag.StringVar(&peer, "peer-name", "peer", "peer Collection name, default \"peer\"")
-	flag.StringVar(&ebgpPeerV4, "ebgp-peer-name", "ebgp_peer_v4", "ebgp peer v4 Collection name, default \"ebgp_peer_v4\"")
+	flag.StringVar(&bgpNode, "bgp-node-name", "bgp_node", "bgp node Collection name, default \"bgp_node\"")
 	flag.StringVar(&ebgpprefixV4, "ebgpprefixv4-prefix-name", "ebgp_prefix_v4", "ebgpprefix v4 Collection name, default \"ebgp_prefix_v4\"")
 	flag.StringVar(&inetprefixV4, "inetprefixv4-prefix-name", "inet_prefix_v4", "inet prefix v4 Collection name, default \"inet_prefix_v4\"")
 	flag.StringVar(&ipv4Graph, "ipv4-graph", "ipv4_graph", "ipv4_graph Collection name, default \"ipv4_graph\"")
@@ -103,7 +104,7 @@ func main() {
 	}
 
 	dbSrv, err := arangodb.NewDBSrvClient(dbSrvAddr, dbUser, dbPass, dbName, peer,
-		ebgpPeerV4, unicastprefixV4, ebgpprefixV4, inetprefixV4, ipv4Graph, notifier)
+		bgpNode, unicastprefixV4, ebgpprefixV4, inetprefixV4, ipv4Graph, notifier)
 	if err != nil {
 		glog.Errorf("failed to initialize database client with error: %+v", err)
 		os.Exit(1)

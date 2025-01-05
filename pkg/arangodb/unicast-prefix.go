@@ -13,7 +13,7 @@ func (a *arangoDB) processInetPrefix(ctx context.Context, key string, e *message
 	if e.PeerASN >= 64512 && e.PeerASN <= 65535 {
 		return a.processeNewPrefix(ctx, key, e)
 	} else {
-		query := "for l in ebgp_peer_v4 filter l.asn !in 64512..65535"
+		query := "for l in bgp_node filter l.asn !in 64512..65535"
 		query += " return l"
 
 		pcursor, err := a.db.Query(ctx, query, nil)
@@ -82,7 +82,7 @@ func (a *arangoDB) processeBgpPrefix(ctx context.Context, key string, e *bgpPref
 	// if e.BaseAttributes.ASPathCount != 1 {
 	// 	return nil
 	// }
-	query := "for l in ebgp_peer_v4 filter l.router_id == '" + e.RouterID + "' and l.asn == " + strconv.Itoa(int(e.OriginAS))
+	query := "for l in bgp_node filter l.router_id == '" + e.RouterID + "' and l.asn == " + strconv.Itoa(int(e.OriginAS))
 	query += " return l	"
 	glog.Infof("query: %+v", query)
 	pcursor, err := a.db.Query(ctx, query, nil)
@@ -151,7 +151,7 @@ func (a *arangoDB) processeNewPrefix(ctx context.Context, key string, e *message
 	// if e.BaseAttributes.ASPathCount != 1 {
 	// 	return nil
 	// }
-	query := "for l in ebgp_peer_v4 filter l.router_id == '" + e.PeerIP + "' and l.asn == " + strconv.Itoa(int(e.OriginAS))
+	query := "for l in bgp_node filter l.router_id == '" + e.PeerIP + "' and l.asn == " + strconv.Itoa(int(e.OriginAS))
 	query += " return l	"
 	glog.Infof("query: %+v", query)
 	pcursor, err := a.db.Query(ctx, query, nil)

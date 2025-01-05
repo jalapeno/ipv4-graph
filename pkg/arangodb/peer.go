@@ -3,6 +3,7 @@ package arangodb
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
@@ -36,9 +37,9 @@ func (a *arangoDB) processPeerSession(ctx context.Context, key string, p *messag
 	return nil
 }
 
-func (a *arangoDB) getPeerV4(ctx context.Context, e *message.PeerStateChange, local bool) (bgpPeer, error) {
+func (a *arangoDB) getPeerV4(ctx context.Context, e *message.PeerStateChange, local bool) (bgpNode, error) {
 	// Need to find ls_node object matching ls_link's IGP Router ID
-	query := "FOR d IN " + a.ebgpPeerV4.Name()
+	query := "FOR d IN " + a.bgpNode.Name()
 	if local {
 		//glog.Infof("get local node per session: %s, %s", e.LocalBGPID, e.ID)
 		query += " filter d.router_id == " + "\"" + e.LocalBGPID + "\""
@@ -53,7 +54,7 @@ func (a *arangoDB) getPeerV4(ctx context.Context, e *message.PeerStateChange, lo
 		glog.Errorf("failed to process key: %s with error: %+v", e.Key, err)
 	}
 	defer lcursor.Close()
-	var ln bgpPeer
+	var ln bgpNode
 	i := 0
 	for ; ; i++ {
 		_, err := lcursor.ReadDocument(ctx, &ln)
@@ -73,14 +74,15 @@ func (a *arangoDB) getPeerV4(ctx context.Context, e *message.PeerStateChange, lo
 	return ln, nil
 }
 
-func (a *arangoDB) createPeerEdge(ctx context.Context, l *message.PeerStateChange, ln, rn bgpPeer) error {
+func (a *arangoDB) createPeerEdge(ctx context.Context, l *message.PeerStateChange, ln, rn bgpNode) error {
 	if a == nil || a.graph == nil {
 		return fmt.Errorf("invalid arangoDB instance or graph is nil")
 	}
 
 	//glog.Infof("create peer edge for: %s, with local node: %s and remote node: %s", l.Key, ln.ID, rn.ID)
 	pf := peerFromObject{
-		Key:       l.Key,
+		//Key:       l.Key,
+		Key:       l.RemoteBGPID + "_" + strconv.Itoa(int(l.RemoteASN)) + "_" + l.RemoteIP,
 		From:      ln.ID,
 		To:        rn.ID,
 		LocalIP:   l.LocalIP,
