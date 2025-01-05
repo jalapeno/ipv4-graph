@@ -3,6 +3,7 @@ package arangodb
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
@@ -80,7 +81,8 @@ func (a *arangoDB) createPeerEdge(ctx context.Context, l *message.PeerStateChang
 
 	//glog.Infof("create peer edge for: %s, with local node: %s and remote node: %s", l.Key, ln.ID, rn.ID)
 	pf := peerFromObject{
-		Key:       l.Key,
+		//Key:       l.Key,
+		Key:       l.RemoteBGPID + "_" + strconv.Itoa(int(l.RemoteASN)) + "_" + l.RemoteIP,
 		From:      ln.ID,
 		To:        rn.ID,
 		LocalIP:   l.LocalIP,
