@@ -28,17 +28,17 @@ const (
 )
 
 var (
-	msgSrvAddr string
-	dbSrvAddr  string
-	dbName     string
-	dbUser     string
-	dbPass     string
-	peer       string
-	bgpNode    string
-	//ebgpPeerV4      string
+	msgSrvAddr      string
+	dbSrvAddr       string
+	dbName          string
+	dbUser          string
+	dbPass          string
+	peer            string
+	bgpNode         string
 	unicastprefixV4 string
 	ebgpprefixV4    string
 	inetprefixV4    string
+	ibgpprefixV4    string
 	ipv4Graph       string
 )
 
@@ -60,6 +60,7 @@ func init() {
 	flag.StringVar(&bgpNode, "bgp-node-name", "bgp_node", "bgp node Collection name, default \"bgp_node\"")
 	flag.StringVar(&ebgpprefixV4, "ebgpprefixv4-prefix-name", "ebgp_prefix_v4", "ebgpprefix v4 Collection name, default \"ebgp_prefix_v4\"")
 	flag.StringVar(&inetprefixV4, "inetprefixv4-prefix-name", "inet_prefix_v4", "inet prefix v4 Collection name, default \"inet_prefix_v4\"")
+	flag.StringVar(&ibgpprefixV4, "ibgpprefixv4-prefix-name", "ibgp_prefix_v4", "ibgp prefix v4 Collection name, default \"ibgp_prefix_v4\"")
 	flag.StringVar(&ipv4Graph, "ipv4-graph", "ipv4_graph", "ipv4_graph Collection name, default \"ipv4_graph\"")
 }
 
@@ -104,7 +105,7 @@ func main() {
 	}
 
 	dbSrv, err := arangodb.NewDBSrvClient(dbSrvAddr, dbUser, dbPass, dbName, peer,
-		bgpNode, unicastprefixV4, ebgpprefixV4, inetprefixV4, ipv4Graph, notifier)
+		bgpNode, unicastprefixV4, ebgpprefixV4, inetprefixV4, ibgpprefixV4, ipv4Graph, notifier)
 	if err != nil {
 		glog.Errorf("failed to initialize database client with error: %+v", err)
 		os.Exit(1)

@@ -17,20 +17,21 @@ import (
 type arangoDB struct {
 	dbclient.DB
 	*ArangoConn
-	stop            chan struct{}
-	graph           driver.Collection
-	peer            driver.Collection
-	bgpNode         driver.Collection
-	unicastprefixV4 driver.Collection
-	ebgpprefixV4    driver.Collection
-	inetprefixV4    driver.Collection
-	ipv4Graph       driver.Graph
-	notifier        kafkanotifier.Event
+	stop    chan struct{}
+	graph   driver.Collection
+	peer    driver.Collection
+	bgpNode driver.Collection
+	//unicastprefixV4 driver.Collection
+	ebgpprefixV4 driver.Collection
+	inetprefixV4 driver.Collection
+	ibgpprefixV4 driver.Collection
+	ipv4Graph    driver.Graph
+	notifier     kafkanotifier.Event
 }
 
 // NewDBSrvClient returns an instance of a DB server client process
 func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, bgpNode, unicastprefixV4,
-	ebgpprefixV4, inetprefixV4, ipv4Graph string,
+	ebgpprefixV4, inetprefixV4, ibgpprefixV4, ipv4Graph string,
 	notifier kafkanotifier.Event) (dbclient.Srv, error) {
 	if err := tools.URLAddrValidation(arangoSrv); err != nil {
 		return nil, err
@@ -68,7 +69,7 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, bgpNode, unicastprefixV
 		}
 	}
 
-	// check for ebgp6 prefix collection
+	// check for ebgp4 prefix collection
 	found, err = arango.db.CollectionExists(context.TODO(), ebgpprefixV4)
 	if err != nil {
 		return nil, err
@@ -83,13 +84,28 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, bgpNode, unicastprefixV
 		}
 	}
 
-	// check for inet6 prefix collection
+	// check for inet4 prefix collection
 	found, err = arango.db.CollectionExists(context.TODO(), inetprefixV4)
 	if err != nil {
 		return nil, err
 	}
 	if found {
 		c, err := arango.db.Collection(context.TODO(), inetprefixV4)
+		if err != nil {
+			return nil, err
+		}
+		if err := c.Remove(context.TODO()); err != nil {
+			return nil, err
+		}
+	}
+
+	// check for ibgp4 prefix collection
+	found, err = arango.db.CollectionExists(context.TODO(), ibgpprefixV4)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		c, err := arango.db.Collection(context.TODO(), ibgpprefixV4)
 		if err != nil {
 			return nil, err
 		}
@@ -119,15 +135,15 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, bgpNode, unicastprefixV
 	if err != nil {
 		return nil, err
 	}
-	//glog.Infof("create eipv4 prefix collection")
 
+	glog.Infof("create ebgp prefix v4 collection")
 	// create ebgp prefix V4 collection
 	var ebgpprefixV4_options = &driver.CreateCollectionOptions{ /* ... */ }
 	arango.ebgpprefixV4, err = arango.db.CreateCollection(context.TODO(), "ebgp_prefix_v4", ebgpprefixV4_options)
 	if err != nil {
 		return nil, err
 	}
-	//glog.Infof("check eipv4 prefix collection")
+	glog.Infof("check ebgp prefix v4 collection")
 
 	// check if collection exists, if not fail as processor has failed to create collection
 	arango.ebgpprefixV4, err = arango.db.Collection(context.TODO(), ebgpprefixV4)
@@ -135,17 +151,32 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, bgpNode, unicastprefixV
 		return nil, err
 	}
 
-	//glog.Infof("create inet prefix v4 collection")
-	// create unicast prefix V4 collection
+	glog.Infof("create inet prefix v4 collection")
+	// create inet prefix V4 collection
 	var inetV4_options = &driver.CreateCollectionOptions{ /* ... */ }
 	arango.inetprefixV4, err = arango.db.CreateCollection(context.TODO(), "inet_prefix_v4", inetV4_options)
 	if err != nil {
 		return nil, err
 	}
 
-	//glog.Infof("check inet prefix v4 collection")
+	glog.Infof("check inet prefix v4 collection")
 	// check if collection exists, if not fail as processor has failed to create collection
 	arango.inetprefixV4, err = arango.db.Collection(context.TODO(), inetprefixV4)
+	if err != nil {
+		return nil, err
+	}
+
+	glog.Infof("create ibgp prefix v4 collection")
+	// create ebgp prefix V4 collection
+	var ibgpprefixV4_options = &driver.CreateCollectionOptions{ /* ... */ }
+	arango.ibgpprefixV4, err = arango.db.CreateCollection(context.TODO(), "ibgp_prefix_v4", ibgpprefixV4_options)
+	if err != nil {
+		return nil, err
+	}
+	glog.Infof("check ibgp prefix v4 collection")
+
+	// check if collection exists, if not fail as processor has failed to create collection
+	arango.ibgpprefixV4, err = arango.db.Collection(context.TODO(), ibgpprefixV4)
 	if err != nil {
 		return nil, err
 	}
@@ -167,8 +198,8 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, peer, bgpNode, unicastprefixV
 		// create graph
 		var edgeDefinition driver.EdgeDefinition
 		edgeDefinition.Collection = "ipv4_graph"
-		edgeDefinition.From = []string{"bgp_node", "ebgp_prefix_v4", "inet_prefix_v4"}
-		edgeDefinition.To = []string{"bgp_node", "ebgp_prefix_v4", "inet_prefix_v4"}
+		edgeDefinition.From = []string{"bgp_node", "ebgp_prefix_v4", "inet_prefix_v4", "ibgp_prefix_v4"}
+		edgeDefinition.To = []string{"bgp_node", "ebgp_prefix_v4", "inet_prefix_v4", "ibgp_prefix_v4"}
 		var options driver.CreateGraphOptions
 		options.EdgeDefinitions = []driver.EdgeDefinition{edgeDefinition}
 
@@ -283,6 +314,19 @@ func (a *arangoDB) loadEdge() error {
 	}
 	defer cursor.Close()
 
+	// iBGP goes last as we sort out which prefixes are orginated externally
+	glog.Infof("copying ibgp unicast v4 prefixes into ibgp_prefix_v4 collection")
+	ibgp4_query := "for u in unicast_prefix_v4 FILTER u.prefix_len < 30 filter u.base_attrs.local_pref != null " +
+		"FILTER u.prefix_len < 30 FILTER u.base_attrs.as_path_count == null FOR p IN peer FILTER u.peer_ip == p.remote_ip " +
+		"INSERT { _key: CONCAT_SEPARATOR(" + "\"_\", u.prefix, u.prefix_len), prefix: u.prefix, prefix_len: u.prefix_len, " +
+		"nexthop: u.nexthop, router_id: p.remote_bgp_id, asn: u.peer_asn, local_pref: u.base_attrs.local_pref } " +
+		"INTO ibgp_prefix_v4 OPTIONS { ignoreErrors: true } "
+	cursor, err = a.db.Query(ctx, ibgp4_query, nil)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close()
+
 	glog.Infof("copying unique bgp_node into bgp_node collection")
 	bgp_node_query := "for p in peer let igp_asns = ( for n in igp_node return n.peer_asn ) " +
 		"filter p.remote_asn not in igp_asns " +
@@ -353,6 +397,27 @@ func (a *arangoDB) loadEdge() error {
 		}
 		//glog.Infof("get ipv inet prefixes: %s", p.Key)
 		if err := a.processInetPrefix(ctx, meta.Key, &p); err != nil {
+			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
+			continue
+		}
+	}
+
+	ibgp_prefix_query := "for p in ibgp_prefix_v4 return p"
+	cursor, err = a.db.Query(ctx, ibgp_prefix_query, nil)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close()
+	for {
+		var p ibgpPrefix
+		meta, err := cursor.ReadDocument(ctx, &p)
+		if driver.IsNoMoreDocuments(err) {
+			break
+		} else if err != nil {
+			return err
+		}
+		//glog.Infof("get ipv ibgp prefixes: %s", p.Key)
+		if err := a.processeIbgpPrefix(ctx, meta.Key, &p); err != nil {
 			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
 			continue
 		}

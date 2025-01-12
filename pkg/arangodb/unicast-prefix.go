@@ -144,6 +144,69 @@ func (a *arangoDB) processeBgpPrefix(ctx context.Context, key string, e *bgpPref
 	return nil
 }
 
+func (a *arangoDB) processeIbgpPrefix(ctx context.Context, key string, e *ibgpPrefix) error {
+	query := "for l in igp_node filter l.router_id == '" + e.RouterID + "' and l.asn == " + strconv.Itoa(int(e.ASN))
+	query += " return l	"
+	glog.Infof("query: %+v", query)
+	pcursor, err := a.db.Query(ctx, query, nil)
+	if err != nil {
+		return err
+	}
+	defer pcursor.Close()
+	for {
+		var up ibgpPrefix
+		mp, err := pcursor.ReadDocument(ctx, &up)
+		if err != nil {
+			if driver.IsNoMoreDocuments(err) {
+				return err
+			}
+			if !driver.IsNoMoreDocuments(err) {
+				return err
+			}
+			break
+		}
+
+		glog.Infof("ibgp node and unicastprefix %s, meta %+v, %v", e.Key, up.Key, mp)
+		from := unicastPrefixEdgeObject{
+			Key:       up.Key + "_" + e.Key,
+			From:      up.ID,
+			To:        e.ID,
+			Prefix:    up.Prefix,
+			PrefixLen: up.PrefixLen,
+			ASN:       e.ASN,
+		}
+
+		if _, err := a.graph.CreateDocument(ctx, &from); err != nil {
+			if !driver.IsConflict(err) {
+				return err
+			}
+			// The document already exists, updating it with the latest info
+			if _, err := a.graph.UpdateDocument(ctx, from.Key, &from); err != nil {
+				return err
+			}
+		}
+		to := unicastPrefixEdgeObject{
+			Key:       e.Key + "_" + up.Key,
+			From:      e.ID,
+			To:        up.ID,
+			Prefix:    up.Prefix,
+			PrefixLen: up.PrefixLen,
+			ASN:       e.ASN,
+		}
+
+		if _, err := a.graph.CreateDocument(ctx, &to); err != nil {
+			if !driver.IsConflict(err) {
+				return err
+			}
+			// The document already exists, updating it with the latest info
+			if _, err := a.graph.UpdateDocument(ctx, to.Key, &to); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // processeNewPrefix is under construction
 func (a *arangoDB) processeNewPrefix(ctx context.Context, key string, e *message.UnicastPrefix) error {
 	// get internal ASN so we can determine whether this is an external prefix or not

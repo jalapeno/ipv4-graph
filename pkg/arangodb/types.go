@@ -57,6 +57,7 @@ type unicastPrefixEdgeObject struct {
 	BaseAttrs  *bgp.BaseAttributes `json:"base_attrs"`
 	PeerASN    uint32              `json:"peer_asn"`
 	OriginAS   int32               `json:"origin_as"`
+	ASN        int32               `json:"asn"`
 	ProtocolID base.ProtoID        `json:"protocol_id"`
 	Nexthop    string              `json:"nexthop"`
 	Labels     []uint32            `json:"labels"`
@@ -107,6 +108,17 @@ type bgpPrefix struct {
 	PrefixLen int32  `json:"prefix_len"`
 	OriginAS  int32  `json:"origin_as"`
 	RouterID  string `json:"router_id"`
+}
+
+type ibgpPrefix struct {
+	ID        string `json:"_id,omitempty"`
+	Key       string `json:"_key"`
+	Prefix    string `json:"prefix"`
+	PrefixLen int32  `json:"prefix_len"`
+	ASN       int32  `json:"asn"`
+	RouterID  string `json:"router_id"`
+	Nexthop   string `json:"nexthop"`
+	LocalPref int32  `json:"local_pref"`
 }
 
 type igpNode struct {
