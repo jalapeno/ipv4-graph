@@ -417,7 +417,7 @@ func (a *arangoDB) loadEdge() error {
 			return err
 		}
 		//glog.Infof("get ipv ibgp prefixes: %s", p.Key)
-		if err := a.processeIbgpPrefix(ctx, meta.Key, &p); err != nil {
+		if err := a.processIbgpPrefix(ctx, meta.Key, &p); err != nil {
 			glog.Errorf("failed to process key: %s with error: %+v", meta.Key, err)
 			continue
 		}

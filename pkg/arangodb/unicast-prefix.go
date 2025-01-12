@@ -144,7 +144,7 @@ func (a *arangoDB) processeBgpPrefix(ctx context.Context, key string, e *bgpPref
 	return nil
 }
 
-func (a *arangoDB) processeIbgpPrefix(ctx context.Context, key string, e *ibgpPrefix) error {
+func (a *arangoDB) processIbgpPrefix(ctx context.Context, key string, e *ibgpPrefix) error {
 	query := "for l in igp_node filter l.router_id == '" + e.RouterID + "' and l.asn == " + strconv.Itoa(int(e.ASN))
 	query += " return l	"
 	glog.Infof("query: %+v", query)
