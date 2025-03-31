@@ -17,11 +17,10 @@ import (
 type arangoDB struct {
 	dbclient.DB
 	*ArangoConn
-	stop    chan struct{}
-	graph   driver.Collection
-	peer    driver.Collection
-	bgpNode driver.Collection
-	//unicastprefixV4 driver.Collection
+	stop         chan struct{}
+	graph        driver.Collection
+	peer         driver.Collection
+	bgpNode      driver.Collection
 	ebgpprefixV4 driver.Collection
 	inetprefixV4 driver.Collection
 	ibgpprefixV4 driver.Collection
