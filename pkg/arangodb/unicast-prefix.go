@@ -44,12 +44,12 @@ func (a *arangoDB) processInetPrefix(ctx context.Context, key string, e *message
 				OriginAS:  up.OriginAS,
 			}
 
-			if _, err := a.graph.CreateDocument(ctx, &from); err != nil {
+			if _, err := a.ipv4Edge.CreateDocument(ctx, &from); err != nil {
 				if !driver.IsConflict(err) {
 					return err
 				}
 				// The document already exists, updating it with the latest info
-				if _, err := a.graph.UpdateDocument(ctx, from.Key, &from); err != nil {
+				if _, err := a.ipv4Edge.UpdateDocument(ctx, from.Key, &from); err != nil {
 					return err
 				}
 			}
@@ -62,12 +62,12 @@ func (a *arangoDB) processInetPrefix(ctx context.Context, key string, e *message
 				OriginAS:  up.OriginAS,
 			}
 
-			if _, err := a.graph.CreateDocument(ctx, &to); err != nil {
+			if _, err := a.ipv4Edge.CreateDocument(ctx, &to); err != nil {
 				if !driver.IsConflict(err) {
 					return err
 				}
 				// The document already exists, updating it with the latest info
-				if _, err := a.graph.UpdateDocument(ctx, to.Key, &to); err != nil {
+				if _, err := a.ipv4Edge.UpdateDocument(ctx, to.Key, &to); err != nil {
 					return err
 				}
 			}
@@ -113,12 +113,12 @@ func (a *arangoDB) processeBgpPrefix(ctx context.Context, key string, e *bgpPref
 			OriginAS:  up.OriginAS,
 		}
 
-		if _, err := a.graph.CreateDocument(ctx, &from); err != nil {
+		if _, err := a.ipv4Edge.CreateDocument(ctx, &from); err != nil {
 			if !driver.IsConflict(err) {
 				return err
 			}
 			// The document already exists, updating it with the latest info
-			if _, err := a.graph.UpdateDocument(ctx, from.Key, &from); err != nil {
+			if _, err := a.ipv4Edge.UpdateDocument(ctx, from.Key, &from); err != nil {
 				return err
 			}
 		}
@@ -131,12 +131,12 @@ func (a *arangoDB) processeBgpPrefix(ctx context.Context, key string, e *bgpPref
 			OriginAS:  up.OriginAS,
 		}
 
-		if _, err := a.graph.CreateDocument(ctx, &to); err != nil {
+		if _, err := a.ipv4Edge.CreateDocument(ctx, &to); err != nil {
 			if !driver.IsConflict(err) {
 				return err
 			}
 			// The document already exists, updating it with the latest info
-			if _, err := a.graph.UpdateDocument(ctx, to.Key, &to); err != nil {
+			if _, err := a.ipv4Edge.UpdateDocument(ctx, to.Key, &to); err != nil {
 				return err
 			}
 		}
@@ -176,12 +176,12 @@ func (a *arangoDB) processIbgpPrefix(ctx context.Context, key string, e *ibgpPre
 			ASN:       e.ASN,
 		}
 
-		if _, err := a.graph.CreateDocument(ctx, &from); err != nil {
+		if _, err := a.ipv4Edge.CreateDocument(ctx, &from); err != nil {
 			if !driver.IsConflict(err) {
 				return err
 			}
 			// The document already exists, updating it with the latest info
-			if _, err := a.graph.UpdateDocument(ctx, from.Key, &from); err != nil {
+			if _, err := a.ipv4Edge.UpdateDocument(ctx, from.Key, &from); err != nil {
 				return err
 			}
 		}
@@ -194,12 +194,12 @@ func (a *arangoDB) processIbgpPrefix(ctx context.Context, key string, e *ibgpPre
 			ASN:       e.ASN,
 		}
 
-		if _, err := a.graph.CreateDocument(ctx, &to); err != nil {
+		if _, err := a.ipv4Edge.CreateDocument(ctx, &to); err != nil {
 			if !driver.IsConflict(err) {
 				return err
 			}
 			// The document already exists, updating it with the latest info
-			if _, err := a.graph.UpdateDocument(ctx, to.Key, &to); err != nil {
+			if _, err := a.ipv4Edge.UpdateDocument(ctx, to.Key, &to); err != nil {
 				return err
 			}
 		}
@@ -245,12 +245,12 @@ func (a *arangoDB) processeNewPrefix(ctx context.Context, key string, e *message
 			OriginAS:  up.OriginAS,
 		}
 
-		if _, err := a.graph.CreateDocument(ctx, &from); err != nil {
+		if _, err := a.ipv4Edge.CreateDocument(ctx, &from); err != nil {
 			if !driver.IsConflict(err) {
 				return err
 			}
 			// The document already exists, updating it with the latest info
-			if _, err := a.graph.UpdateDocument(ctx, from.Key, &from); err != nil {
+			if _, err := a.ipv4Edge.UpdateDocument(ctx, from.Key, &from); err != nil {
 				return err
 			}
 		}
@@ -263,12 +263,12 @@ func (a *arangoDB) processeNewPrefix(ctx context.Context, key string, e *message
 			OriginAS:  up.OriginAS,
 		}
 
-		if _, err := a.graph.CreateDocument(ctx, &to); err != nil {
+		if _, err := a.ipv4Edge.CreateDocument(ctx, &to); err != nil {
 			if !driver.IsConflict(err) {
 				return err
 			}
 			// The document already exists, updating it with the latest info
-			if _, err := a.graph.UpdateDocument(ctx, to.Key, &to); err != nil {
+			if _, err := a.ipv4Edge.UpdateDocument(ctx, to.Key, &to); err != nil {
 				return err
 			}
 		}
@@ -279,7 +279,7 @@ func (a *arangoDB) processeNewPrefix(ctx context.Context, key string, e *message
 // processEdgeRemoval removes a record from Node's graph collection
 // since the key matches in both collections (LS Links and Nodes' Graph) deleting the record directly.
 func (a *arangoDB) processUnicastPrefixRemoval(ctx context.Context, key string) error {
-	if _, err := a.graph.RemoveDocument(ctx, key); err != nil {
+	if _, err := a.ipv4Edge.RemoveDocument(ctx, key); err != nil {
 		if !driver.IsNotFound(err) {
 			return err
 		}

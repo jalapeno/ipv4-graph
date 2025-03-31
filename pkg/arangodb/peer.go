@@ -75,7 +75,7 @@ func (a *arangoDB) getPeerV4(ctx context.Context, e *message.PeerStateChange, lo
 }
 
 func (a *arangoDB) createPeerEdge(ctx context.Context, l *message.PeerStateChange, ln, rn bgpNode) error {
-	if a == nil || a.graph == nil {
+	if a == nil || a.ipv4Edge == nil {
 		return fmt.Errorf("invalid arangoDB instance or graph is nil")
 	}
 
@@ -90,12 +90,12 @@ func (a *arangoDB) createPeerEdge(ctx context.Context, l *message.PeerStateChang
 		LocalASN:  l.LocalASN,
 		RemoteASN: l.RemoteASN,
 	}
-	if _, err := a.graph.CreateDocument(ctx, &pf); err != nil {
+	if _, err := a.ipv4Edge.CreateDocument(ctx, &pf); err != nil {
 		if !driver.IsConflict(err) {
 			return err
 		}
 		// The document already exists, updating it with the latest info
-		if _, err := a.graph.UpdateDocument(ctx, pf.Key, &pf); err != nil {
+		if _, err := a.ipv4Edge.UpdateDocument(ctx, pf.Key, &pf); err != nil {
 			return err
 		}
 	}
@@ -104,7 +104,7 @@ func (a *arangoDB) createPeerEdge(ctx context.Context, l *message.PeerStateChang
 
 // processPeerRemoval removes records from Edge collection which are referring to deleted UnicastPrefix
 func (a *arangoDB) processPeerRemoval(ctx context.Context, id string) error {
-	query := "FOR d IN " + a.graph.Name() +
+	query := "FOR d IN " + a.ipv4Edge.Name() +
 		" filter d._to == " + "\"" + id + "\""
 	query += " return d"
 	glog.V(6).Infof("query to remove prefix edge: %s", query)
@@ -122,7 +122,7 @@ func (a *arangoDB) processPeerRemoval(ctx context.Context, id string) error {
 			}
 			break
 		}
-		if _, err := a.graph.RemoveDocument(ctx, m.ID.Key()); err != nil {
+		if _, err := a.ipv4Edge.RemoveDocument(ctx, m.ID.Key()); err != nil {
 			if !driver.IsNotFound(err) {
 				return err
 			}
