@@ -44,8 +44,8 @@ var (
 
 func init() {
 	runtime.GOMAXPROCS(1)
-	// flag.StringVar(&msgSrvAddr, "message-server", "198.18.133.112:30092", "URL to the messages supplying server")
-	// flag.StringVar(&dbSrvAddr, "database-server", "http://198.18.133.112:30852", "{dns name}:port or X.X.X.X:port of the graph database")
+	// flag.StringVar(&msgSrvAddr, "message-server", "198.18.133.102:30092", "URL to the messages supplying server")
+	// flag.StringVar(&dbSrvAddr, "database-server", "http://198.18.133.102:30852", "{dns name}:port or X.X.X.X:port of the graph database")
 	// flag.StringVar(&dbName, "database-name", "jalapeno", "DB name")
 	// flag.StringVar(&dbUser, "database-user", "root", "DB User name")
 	// flag.StringVar(&dbPass, "database-pass", "jalapeno", "DB User's password")

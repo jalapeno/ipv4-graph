@@ -123,12 +123,12 @@ func (a *arangoDB) createPRedge(ctx context.Context, p *message.PeerStateChange,
 			LocalASN:  p.LocalASN,
 			RemoteASN: p.RemoteASN,
 		}
-		if _, err := a.graph.CreateDocument(ctx, &pf); err != nil {
+		if _, err := a.ipv4Edge.CreateDocument(ctx, &pf); err != nil {
 			if !driver.IsConflict(err) {
 				return err
 			}
 			// The document already exists, updating it with the latest info
-			if _, err := a.graph.UpdateDocument(ctx, pf.Key, &pf); err != nil {
+			if _, err := a.ipv4Edge.UpdateDocument(ctx, pf.Key, &pf); err != nil {
 				return err
 			}
 		}
@@ -142,12 +142,12 @@ func (a *arangoDB) createPRedge(ctx context.Context, p *message.PeerStateChange,
 			LocalASN:  p.LocalASN,
 			RemoteASN: p.RemoteASN,
 		}
-		if _, err := a.graph.CreateDocument(ctx, &pt); err != nil {
+		if _, err := a.ipv4Edge.CreateDocument(ctx, &pt); err != nil {
 			if !driver.IsConflict(err) {
 				return err
 			}
 			// The document already exists, updating it with the latest info
-			if _, err := a.graph.UpdateDocument(ctx, pt.Key, &pt); err != nil {
+			if _, err := a.ipv4Edge.UpdateDocument(ctx, pt.Key, &pt); err != nil {
 				return err
 			}
 		}
